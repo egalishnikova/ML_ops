@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+app.log
+storage/models/
+*.pth
+*.joblib
+.venv/
+.idea/
+.vscode/
