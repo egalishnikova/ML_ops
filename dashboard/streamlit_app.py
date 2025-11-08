@@ -81,3 +81,19 @@ def main(api_url: str, api_key: Optional[str]):
                 st.table(items)
             except Exception as e:  # noqa: BLE001
                 st.error(str(e))
+
+if __name__ == "__main__":
+    # Streamlit запускает скрипт как обычный Python-модуль и кладёт свои флаги в sys.argv.
+    # Берём только то, что нам надо, а остальное игнорируем.
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--api-url", default="http://127.0.0.1:8000")
+    parser.add_argument("--api-key", default=None)
+
+    # parse_known_args — чтобы не конфликтовать с внутренними флагами streamlit
+    args, _ = parser.parse_known_args(sys.argv[1:])
+
+    # Запускаем приложение
+    main(api_url=args.api_url, api_key=args.api_key)
