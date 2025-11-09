@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "ml-service"
+version = "0.1.0"
+description = "REST + gRPC сервис для обучения и инференса ML моделей (Poetry)"
+authors = ["Ваша команда <team@example.com>"]
+readme = "README.md"
+packages = [{ include = "app" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115.0"
+uvicorn = {extras = ["standard"], version = "^0.30.0"}
+pydantic = "^2.8.0"
+scikit-learn = "^1.5.0"
+numpy = "^1.26.0"
+joblib = "^1.4.0"
+python-dotenv = "^1.0.1"
+streamlit = "^1.38.0"
+grpcio = "^1.66.0"
+grpcio-tools = "^1.66.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+ruff = "^0.6.8"
+httpx = "^0.27.0"
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "UP", "B", "ISC", "C4", "PIE", "TID"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"

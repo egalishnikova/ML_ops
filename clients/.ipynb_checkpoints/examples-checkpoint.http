@@ -1,0 +1,47 @@
+### HEALTH
+GET http://127.0.0.1:8000/health
+
+### LIST CLASSES
+GET http://127.0.0.1:8000/models/classes
+
+### TRAIN
+POST http://127.0.0.1:8000/train
+Content-Type: application/json
+# X-API-Key: secret
+
+{
+  "model_class": "random_forest",
+  "hyperparams": {"n_estimators": 50, "max_depth": 3},
+  "X": [[0,0],[1,1],[1,0],[0,1]],
+  "y": [0,1,1,0],
+  "model_name": "rf-demo"
+}
+
+### PREDICT
+POST http://127.0.0.1:8000/predict
+Content-Type: application/json
+# X-API-Key: secret
+
+{
+  "model_id": "<MODEL_ID>",
+  "X": [[1,1],[0,0]]
+}
+
+### LIST MODELS
+GET http://127.0.0.1:8000/models
+# X-API-Key: secret
+
+### RETRAIN
+POST http://127.0.0.1:8000/models/<MODEL_ID>/retrain
+Content-Type: application/json
+# X-API-Key: secret
+
+{
+  "X": [[0,0],[1,1]],
+  "y": [0,1],
+  "hyperparams": {"n_estimators": 100}
+}
+
+### DELETE
+DELETE http://127.0.0.1:8000/models/<MODEL_ID>
+# X-API-Key: secret
