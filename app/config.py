@@ -25,10 +25,10 @@ class Settings:
         "MLFLOW_TRACKING_URI",
         "http://mlflow:5000",
     )
-    enable_mlflow: bool = os.getenv("ENABLE_MLFLOW", "1") == "1"
+    enable_mlflow: bool = os.getenv("ENABLE_MLFLOW", "0") == "1"
 
     # --- DVC ---
-    enable_dvc: bool = os.getenv("ENABLE_DVC", "1") == "1"
+    enable_dvc: bool = os.getenv("ENABLE_DVC", "0") == "1"
     data_dir: str = os.getenv("DATA_DIR", "data/datasets")
 
 

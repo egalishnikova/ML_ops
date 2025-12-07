@@ -1,10 +1,23 @@
+# Python
 __pycache__/
 *.pyc
-.env
-app.log
-storage/models/
-*.pth
-*.joblib
-.venv/
-.idea/
-.vscode/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data
+data/datasets/*
+!data/datasets/.gitignore
+storage/
+_minio_data/
+
+# MLflow
+mlflow.db
+mlruns/
+
+# DVC cache (если появится)
+.dvc/cache/
+
+# OS
+.DS_Store
+
