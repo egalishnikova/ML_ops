@@ -1,0 +1,121 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: ml_api
+    environment:
+      # --- Auth (опционально) ---
+      - API_KEY=secret
+
+      # --- MLflow ---
+      - ENABLE_MLFLOW=1
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+
+      # --- DVC ---
+      - ENABLE_DVC=1
+      - DATA_DIR=/app/data/datasets
+
+      # --- S3 / MinIO ---
+      - S3_ENDPOINT_URL=http://minio:9000
+      - S3_BUCKET_MODELS=mlflow
+
+      # --- Git для DVC внутри контейнера ---
+      - GIT_AUTHOR_NAME=ml
+      - GIT_AUTHOR_EMAIL=ml@example.com
+      - GIT_COMMITTER_NAME=ml
+      - GIT_COMMITTER_EMAIL=ml@example.com
+
+    volumes:
+      - ./:/app
+    depends_on:
+      - minio
+      - mlflow
+    ports:
+      - "8000:8000"
+
+  grpc:
+    build: .
+    container_name: ml_grpc
+    command: ["python", "-m", "app.grpc_server", "--host", "0.0.0.0", "--port", "50051"]
+    environment:
+      - API_KEY=secret
+      - ENABLE_MLFLOW=1
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - ENABLE_DVC=1
+      - DATA_DIR=/app/data/datasets
+      - S3_ENDPOINT_URL=http://minio:9000
+      - S3_BUCKET_MODELS=mlflow
+    volumes:
+      - ./:/app
+    depends_on:
+      - minio
+      - mlflow
+    ports:
+      - "50051:50051"
+
+  streamlit:
+    build: .
+    container_name: ml_streamlit
+    command: ["streamlit", "run", "dashboard/streamlit_app.py", "--", "--api-url", "http://api:8000"]
+    environment:
+      - API_URL=http://api:8000
+    volumes:
+      - ./:/app
+    depends_on:
+      - api
+    ports:
+      - "8501:8501"
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2024-10-02T17-50-41Z
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - ./_minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"   # веб-консоль
+
+  createbuckets:
+    image: minio/mc:latest
+    container_name: minio_mc
+    depends_on:
+      - minio
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "mc alias set local http://minio:9000 minioadmin minioadmin &&
+       mc mb -p local/mlflow || true &&
+       mc mb -p local/dvc || true &&
+       mc anonymous set download local/mlflow || true &&
+       mc anonymous set download local/dvc || true &&
+       sleep 1 && echo 'Buckets ready'"
+
+
+  mlflow:
+    build: .
+    container_name: mlflow
+    command: ["mlflow", "server",
+              "--host", "0.0.0.0",
+              "--port", "5000",
+              "--backend-store-uri", "sqlite:///mlflow.db",
+              "--default-artifact-root", "s3://mlflow/"]
+    environment:
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    volumes:
+      - ./:/app
+    depends_on:
+      - minio
+    ports:
+      - "5001:5000"
