@@ -1,63 +1,76 @@
-"""Конфигурация приложения и вспомогательные функции.
-
-Поддерживает загрузку окружения из .env. Включает простую проверку API ключа
-для REST и gRPC (опционально).
-"""
-from __future__ import annotations
-
-import json
 import logging
 import os
 from dataclasses import dataclass
-from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from typing import Optional
-
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
 @dataclass
 class Settings:
-    api_key: Optional[str] = os.getenv("API_KEY")
+    # --- базовые настройки хранилища/логов/авторизации ---
     storage_dir: str = os.getenv("STORAGE_DIR", "storage")
-    registry_path: str = os.getenv("REGISTRY_PATH", "storage/registry.json")
-    log_path: str = os.getenv("LOG_PATH", "app.log")
+    models_dir: str = os.getenv("MODELS_DIR", os.path.join("storage", "models"))
+    registry_path: str = os.getenv("REGISTRY_PATH", os.path.join("storage", "registry.json"))
+    log_file: str = os.getenv("LOG_FILE", "app.log")
+    api_key: Optional[str] = os.getenv("API_KEY")  # если None – авторизация выключена
+
+    # --- S3 / MinIO ---
+    s3_endpoint: str = os.getenv("S3_ENDPOINT_URL", "http://minio:9000")
+    s3_access_key: str = os.getenv("AWS_ACCESS_KEY_ID", "minioadmin")
+    s3_secret_key: str = os.getenv("AWS_SECRET_ACCESS_KEY", "minioadmin")
+    s3_bucket_models: str = os.getenv("S3_BUCKET_MODELS", "mlflow")
+
+    # --- MLflow ---
+    mlflow_tracking_uri: Optional[str] = os.getenv(
+        "MLFLOW_TRACKING_URI",
+        "http://mlflow:5000",
+    )
+    enable_mlflow: bool = os.getenv("ENABLE_MLFLOW", "1") == "1"
+
+    # --- DVC ---
+    enable_dvc: bool = os.getenv("ENABLE_DVC", "1") == "1"
+    data_dir: str = os.getenv("DATA_DIR", "data/datasets")
 
 
 settings = Settings()
 
 
 def ensure_dirs() -> None:
+    """Создаёт базовые директории и файл реестра, если их ещё нет."""
     os.makedirs(settings.storage_dir, exist_ok=True)
-    os.makedirs(os.path.join(settings.storage_dir, "models"), exist_ok=True)
-    if not os.path.exists(settings.registry_path):
-        with open(settings.registry_path, "w", encoding="utf-8") as f:
-            json.dump({}, f)
+    os.makedirs(settings.models_dir, exist_ok=True)
+
+    reg_path = Path(settings.registry_path)
+    if not reg_path.exists():
+        reg_path.parent.mkdir(parents=True, exist_ok=True)
+        reg_path.write_text("{}", encoding="utf-8")
+
+    # папка для датасетов (для DVC)
+    Path(settings.data_dir).mkdir(parents=True, exist_ok=True)
 
 
 def configure_logging() -> None:
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    """Базовая настройка логгера: в файл + в консоль."""
+    log_format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 
-    # Console
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    ch.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
-    logger.addHandler(ch)
+    # чтобы не дублировать хендлеры при повторных вызовах
+    root = logging.getLogger()
+    if root.handlers:
+        return
 
-    # Rotating file
-    fh = RotatingFileHandler(settings.log_path, maxBytes=2_000_000, backupCount=3)
-    fh.setLevel(logging.INFO)
-    fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
-    logger.addHandler(fh)
+    logging.basicConfig(
+        level=logging.INFO,
+        format=log_format,
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(settings.log_file),
+        ],
+    )
 
 
-def check_api_key(provided: Optional[str]) -> None:
-    """Проверяет API ключ, если он включён.
-
-    :raises PermissionError: если ключ требуется, но не передан/не совпадает
-    """
-    if settings.api_key:
-        if not provided or provided != settings.api_key:
-            raise PermissionError("Invalid or missing API key")
+def check_api_key(value: Optional[str]) -> None:
+    """Проверка API-ключа. Если ключ не задан в настройках — авторизация отключена."""
+    if settings.api_key is None:
+        return
+    if value != settings.api_key:
+        raise PermissionError("Invalid API key")
