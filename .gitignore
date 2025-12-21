@@ -21,3 +21,11 @@ mlruns/
 # OS
 .DS_Store
 
+# local junk
+-H
+-d
+hw2
+app.log
+mlflow.db
+storage/
+_minio_data/

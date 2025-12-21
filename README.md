@@ -1,4 +1,4 @@
-# ML Service — REST + gRPC + Streamlit + MinIO/DVC/MLflow
+# ML Service — REST + gRPC + Streamlit + MinIO/DVC/MLflow + тесты и Makefile
 
 Сервис для обучения и инференса ML-моделей с REST API (FastAPI), gRPC и Streamlit-дашбордом.
 Поддерживает несколько классов моделей (логистическая регрессия, случайный лес), хранит несколько обученных моделей, умеет переобучать и удалять модели.
@@ -603,5 +603,31 @@ ML_ops/
 ├── .gitignore
 └── README.md
 ```
+### ДЗ3
+
+Добавили:
+
+Unit-тесты
+- tests/test_ml_unit.py — обычный unit-тест для обучения и предсказания модели (без Docker, без S3)
+- tests/test_s3_mock.py — тест с мокнутым S3 с использованием moto (работа с S3 не требует реального Minio).
+
+Makefile:
+- Добавлен Makefile с тремя основными командами: сборка Docker-образа и пуш в DockerHub, запуск тестов, запуск линтеров
+
+Как запускать? 
+
+Запуск тестов
+make test
+
+Запуск линтеров
+make lint
+
+Сборка и пуш Docker-образа
+make docker-build-push DOCKERHUB_USER=<dockerhub_username> IMAGE_NAME=<image_name> TAG=<tag>
+
+Пример:
+make docker-build-push DOCKERHUB_USER=edgalishnikova IMAGE_NAME=ml_ops TAG=hw3
+
+Перед сборкой Docker-образа необходимо быть залогиненным в DockerHub
 
 ---
